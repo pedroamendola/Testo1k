@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diagnóstico de Empregabilidade</title>
+<style>
+/* ===== Tokens ===== */
+:root{
+  --ink:#0D1B2A; --slate:#415A77; --mist:#E3EAF2; --cloud:#F3F6FA; --white:#fff;
+  --teal:#13A89E; --teal-d:#0C7C74; --amber:#FFB300; --amber-d:#E69F00; --red:#E5484D;
+  --r:18px; --shadow:0 10px 30px rgba(13,27,42,.10);
+  --font:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{font-family:var(--font);background:var(--cloud);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.app{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding:20px 18px 40px}
+.screen{display:none;flex:1;flex-direction:column;animation:in .45s ease both}
+.screen.on{display:flex}
+@keyframes in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+h1{font-size:clamp(28px,8vw,40px);line-height:1.12;letter-spacing:-.02em;font-weight:800}
+h2{font-size:clamp(22px,6vw,28px);line-height:1.2;letter-spacing:-.01em;font-weight:800}
+h3{font-size:17px;font-weight:700}
+p{color:var(--slate)}
+.brand{font-weight:800;font-size:15px;color:var(--ink);display:flex;align-items:center;gap:8px;margin-bottom:22px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(19,168,158,.2)}
+
+/* ===== Botões ===== */
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:18px 20px;font:700 18px var(--font);cursor:pointer;
+  background:var(--amber);color:var(--ink);box-shadow:0 8px 0 var(--amber-d);transition:transform .15s,box-shadow .15s;text-align:center;text-decoration:none}
+.btn:active{transform:translateY(5px);box-shadow:0 3px 0 var(--amber-d)}
+.btn:focus-visible,.opt:focus-visible,input:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+.btn.pulse{animation:pulse 2.2s infinite}
+@keyframes pulse{0%,100%{filter:none}50%{filter:brightness(1.08)}}
+
+/* ===== Início ===== */
+.hero{background:var(--ink);color:#fff;border-radius:24px;padding:28px 22px;position:relative;overflow:hidden;margin-bottom:22px}
+.hero p{color:#B9C7D8;margin-top:14px;font-size:17px}
+.hero h1 span{color:var(--amber)}
+.ghost{position:absolute;right:-30px;top:-30px;width:150px;height:150px;border-radius:50%;border:2px dashed rgba(255,255,255,.18);animation:spin 30s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
+.chip{background:#fff;border:1px solid var(--mist);border-radius:99px;padding:7px 13px;font-size:13px;font-weight:600;color:var(--slate)}
+.note{font-size:13px;text-align:center;margin-top:14px}
+
+/* ===== Nome ===== */
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:24px 20px}
+input[type=text]{width:100%;font:600 20px var(--font);padding:16px;border:2px solid var(--mist);border-radius:14px;margin:18px 0 8px;color:var(--ink);background:var(--cloud)}
+input[type=text]:focus{border-color:var(--teal);outline:none}
+.err{color:var(--red);font-size:14px;min-height:20px;margin-bottom:10px}
+
+/* ===== Perguntas ===== */
+.top{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700;color:var(--slate);margin-bottom:10px}
+.bar{height:10px;background:var(--mist);border-radius:99px;overflow:hidden;margin-bottom:26px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--teal),#5BD6CB);border-radius:99px;transition:width .5s ease}
+.q{margin-bottom:22px}
+.opts{display:grid;gap:12px}
+.opt{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#fff;border:2px solid var(--mist);border-radius:14px;
+  padding:16px;font:600 16px/1.35 var(--font);color:var(--ink);cursor:pointer;transition:border-color .2s,background .2s,transform .2s}
+.opt b{flex:none;width:30px;height:30px;border-radius:50%;background:var(--cloud);display:grid;place-items:center;font-size:14px;color:var(--slate);transition:.2s}
+.opt:hover{border-color:var(--teal)}
+.opt.sel{border-color:var(--teal);background:#E8F8F6;transform:scale(1.015)}
+.opt.sel b{background:var(--teal);color:#fff}
+.opts.lock .opt:not(.sel){opacity:.45}
+.opts.lock{pointer-events:none}
+.slide{animation:slide .4s ease both}
+@keyframes slide{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+
+/* ===== Análise ===== */
+.center{align-items:center;justify-content:center;text-align:center;gap:18px}
+.ring{width:110px;height:110px;border-radius:50%;border:8px solid var(--mist);border-top-color:var(--teal);animation:spin 1s linear infinite}
+.steps{list-style:none;text-align:left;display:grid;gap:12px;width:100%;max-width:340px;margin-top:8px}
+.steps li{display:flex;gap:12px;align-items:center;font-weight:600;color:#9AA9BA;transition:color .3s}
+.steps li::before{content:"";width:22px;height:22px;border-radius:50%;border:2px solid var(--mist);flex:none;transition:.3s}
+.steps li.on{color:var(--ink)}
+.steps li.on::before{background:var(--teal);border-color:var(--teal);box-shadow:inset 0 0 0 4px #fff}
+
+/* ===== Resultado ===== */
+.badge{display:inline-block;font-size:13px;font-weight:700;border-radius:99px;padding:6px 12px;color:#fff;margin-bottom:12px}
+.gauge{margin:18px 0 6px}
+.gauge .track{height:16px;background:linear-gradient(90deg,var(--teal),var(--amber),var(--red));border-radius:99px;position:relative}
+.gauge .pin{position:absolute;top:-6px;width:6px;height:28px;background:var(--ink);border-radius:4px;left:0;transition:left 1.4s cubic-bezier(.2,.8,.2,1)}
+.gauge .lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--slate);margin-top:8px}
+.cats{display:grid;gap:12px;margin:18px 0}
+.cat .row{display:flex;justify-content:space-between;font-size:14px;font-weight:600;margin-bottom:5px}
+.cat .t{height:8px;background:var(--mist);border-radius:99px;overflow:hidden}
+.cat .t i{display:block;height:100%;width:0;border-radius:99px;transition:width 1.2s ease}
+.callout{background:#FFF7E0;border-left:5px solid var(--amber);border-radius:12px;padding:16px;margin:16px 0;color:var(--ink)}
+.callout p{color:var(--ink)}
+.gap{height:14px}
+
+/* ===== Oferta ===== */
+.offer-h{background:var(--ink);color:#fff;border-radius:24px;padding:26px 20px;margin-bottom:18px}
+.offer-h p{color:#B9C7D8;margin-top:10px}
+.offer-h h2 span{color:var(--amber)}
+.list{list-style:none;display:grid;gap:12px;margin-top:14px}
+.list li{display:flex;gap:12px;align-items:flex-start;color:var(--ink);font-weight:500}
+.list li::before{content:"✓";flex:none;width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-size:14px;font-weight:800;display:grid;place-items:center;margin-top:1px}
+.price{text-align:center;background:#fff;border:2px solid var(--teal);border-radius:var(--r);padding:22px 16px;margin:18px 0;box-shadow:var(--shadow)}
+.price .old{color:#8896A7;text-decoration:line-through;font-size:18px}
+.price .now{font-size:54px;font-weight:900;letter-spacing:-.03em;color:var(--ink);line-height:1.1}
+.price .now small{font-size:22px;font-weight:700}
+.price .tag{display:inline-block;background:var(--amber);color:var(--ink);font-weight:800;font-size:13px;padding:5px 12px;border-radius:99px;margin-bottom:8px}
+.trust{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}
+.trust div{background:#fff;border:1px solid var(--mist);border-radius:12px;padding:12px;font-size:13px;font-weight:600;text-align:center;color:var(--slate)}
+.fine{font-size:12px;text-align:center;margin-top:16px;color:#7C8B9D}
+
+/* ===== Prévia bloqueada / espera ===== */
+.locked{position:relative;margin-top:18px;border-radius:14px;overflow:hidden;background:var(--cloud);padding:18px 16px}
+.locked .ln{height:12px;border-radius:6px;background:#C9D5E3;margin:10px 0;filter:blur(3px)}
+.locked .ln.s{width:60%}
+.locked .ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(243,246,250,.55);text-align:center;padding:12px;font-weight:700;color:var(--ink)}
+.locked .ov span{font-size:26px}
+.locked .ov small{font-weight:600;color:var(--slate);font-size:13px}
+.btn.ghostbtn{background:#fff;color:var(--ink);box-shadow:0 6px 0 var(--mist);border:2px solid var(--mist);margin-top:14px;font-size:16px}
+.wait-msg{min-height:22px;font-size:14px;color:var(--slate)}
+@media(min-width:600px){.app{padding-top:40px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 1. INÍCIO -->
+  <section class="screen on" id="s-start">
+    <div class="brand"><span class="dot"></span>Diagnóstico de Empregabilidade</div>
+    <div class="hero">
+      <div class="ghost"></div>
+      <h1>Existe algo invisível travando suas candidaturas e sua renda extra. <span>Você sabe o que é?</span></h1>
+      <p>Responda 13 perguntas rápidas e receba um diagnóstico personalizado do seu momento profissional.</p>
+    </div>
+    <div class="chips"><span class="chip">⏱ 3 minutos</span><span class="chip">📋 13 perguntas</span><span class="chip">🎯 Resultado personalizado</span></div>
+    <button class="btn pulse" id="btn-start">Começar meu diagnóstico</button>
+    <p class="note">Gratuito. Sem cadastro de e-mail.</p>
+  </section>
+
+  <!-- 2. NOME -->
+  <section class="screen" id="s-name">
+    <div class="brand"><span class="dot"></span>Diagnóstico de Empregabilidade</div>
+    <div class="card">
+      <h2>Para personalizar sua análise, como podemos te chamar?</h2>
+      <p style="margin-top:8px">Digite apenas o seu primeiro nome.</p>
+      <input type="text" id="name" maxlength="20" placeholder="Seu primeiro nome" autocomplete="given-name" aria-label="Primeiro nome">
+      <div class="err" id="name-err" role="alert"></div>
+      <button class="btn" id="btn-name">Continuar</button>
+    </div>
+  </section>
+
+  <!-- 3. PERGUNTAS -->
+  <section class="screen" id="s-quiz">
+    <div class="top"><span id="q-num">Pergunta 1 de 13</span><span id="q-pct">0%</span></div>
+    <div class="bar"><i id="bar"></i></div>
+    <div id="q-box"></div>
+  </section>
+
+  <!-- 4. ANÁLISE -->
+  <section class="screen center" id="s-analysis">
+    <div class="ring"></div>
+    <h2 id="an-title">Analisando suas respostas...</h2>
+    <ul class="steps">
+      <li id="a1">Analisando suas respostas...</li>
+      <li id="a2">Identificando seu perfil profissional...</li>
+      <li id="a3">Comparando com padrões de candidatos...</li>
+      <li id="a4">Localizando seu Inimigo Invisível...</li>
+    </ul>
+    <p class="wait-msg" id="an-err" role="alert"></p>
+    <button class="btn" id="an-retry" style="display:none;max-width:340px">Tentar novamente</button>
+  </section>
+
+  <!-- 5. PRÉVIA (sem resultado completo) -->
+  <section class="screen" id="s-preview">
+    <div class="brand"><span class="dot"></span>Seu diagnóstico está pronto</div>
+    <div class="card">
+      <span class="badge" id="p-badge">Perfil identificado</span>
+      <h2 id="p-title"></h2>
+      <div class="gauge">
+        <div class="track"><div class="pin" id="p-pin"></div></div>
+        <div class="lbl"><span>Caminho livre</span><span>Muito bloqueado</span></div>
+      </div>
+      <p><strong id="p-score"></strong></p>
+      <div class="locked">
+        <div class="ln"></div><div class="ln"></div><div class="ln s"></div>
+        <div class="ln"></div><div class="ln s"></div>
+        <div class="ov"><span>🔒</span>Análise completa bloqueada<small>Detalhes por área e o seu Inimigo Invisível</small></div>
+      </div>
+    </div>
+    <div class="gap"></div>
+    <button class="btn pulse" id="btn-offer">Liberar meu diagnóstico completo</button>
+  </section>
+
+  <!-- 5b. AGUARDANDO PAGAMENTO -->
+  <section class="screen center" id="s-wait">
+    <div class="ring"></div>
+    <h2>Aguardando a confirmação do pagamento</h2>
+    <p>Assim que a compra for aprovada, seu diagnóstico completo aparece aqui automaticamente. Pode manter esta página aberta.</p>
+    <p class="wait-msg" id="wait-msg" role="status"></p>
+    <button class="btn" id="btn-check" style="max-width:340px">Já paguei, verificar agora</button>
+    <button class="btn ghostbtn" id="btn-reopen" style="max-width:340px">Abrir o pagamento novamente</button>
+  </section>
+
+  <!-- 5c. RESULTADO COMPLETO (só após pagamento confirmado) -->
+  <section class="screen" id="s-result">
+    <div class="brand"><span class="dot"></span>Seu diagnóstico completo</div>
+    <div class="card">
+      <span class="badge" id="r-badge"></span>
+      <h2 id="r-title"></h2>
+      <div class="gauge">
+        <div class="track"><div class="pin" id="r-pin"></div></div>
+        <div class="lbl"><span>Caminho livre</span><span>Muito bloqueado</span></div>
+      </div>
+      <p><strong id="r-score"></strong></p>
+      <p id="r-text" style="margin-top:14px;color:var(--ink)"></p>
+      <div class="cats" id="r-cats"></div>
+      <div class="callout"><p id="r-focus"></p></div>
+    </div>
+    <div class="gap"></div>
+    <p class="fine">Pagamento confirmado. Guarde o link desta página para rever o resultado quando quiser.</p>
+  </section>
+
+  <!-- 6. OFERTA -->
+  <section class="screen" id="s-offer">
+    <div class="offer-h">
+      <h2 id="o-title"></h2>
+      <p>Um guia direto ao ponto para você enxergar o que está travando suas candidaturas e sua renda extra, e saber por onde agir primeiro.</p>
+    </div>
+    <div class="card">
+      <h3>O que você vai conseguir</h3>
+      <ul class="list">
+        <li>Entender por que suas candidaturas passam despercebidas</li>
+        <li>Identificar o que impede sua renda extra de decolar</li>
+        <li>Ajustar currículo e perfil para mostrar valor em segundos</li>
+        <li>Ter um plano simples de ação para os próximos 7 dias</li>
+      </ul>
+    </div>
+    <div class="gap"></div>
+    <div class="card">
+      <h3>O que você recebe</h3>
+      <ul class="list">
+        <li><span><strong>Guia "Inimigo Invisível"</strong> com o passo a passo para localizar o seu bloqueio</span></li>
+        <li><span><strong>Checklist de currículo e perfil</strong> para revisar em 15 minutos</span></li>
+        <li><span><strong>Roteiro de candidaturas</strong> com foco em retorno, não em volume</span></li>
+        <li><span><strong>Mapa de renda extra</strong> para transformar o que você sabe em oferta clara</span></li>
+      </ul>
+    </div>
+    <div class="price">
+      <span class="tag">Preço promocional por tempo limitado</span><br>
+      <span class="old">De R$ 29,90</span>
+      <div class="now"><small>R$</small> 9,90</div>
+      <p style="font-size:14px">Pagamento único. Sem mensalidade.</p>
+    </div>
+    <a class="btn pulse" id="btn-checkout" href="#" target="_blank" rel="noopener">Quero descobrir meu Inimigo Invisível</a>
+    <div class="trust">
+      <div>🔒 Compra segura</div><div>⚡ Acesso imediato</div>
+      <div>📱 Leia no celular</div><div>💳 Pagamento único</div>
+    </div>
+    <p class="fine">Este é um material educativo. Os resultados dependem da aplicação e do contexto de cada pessoa; não há promessa de emprego ou de ganhos.</p>
+  </section>
+
+</div>
+
+<script>
+/* ===== CONFIGURAÇÃO ===== */
+var CHECKOUT_URL = "https://pay.hotmart.com/Q108035983I";
+var PRODUCT = "Descubra o \"Inimigo Invisível\" que está travando sua Renda Extra e suas Candidaturas";
+
+/* Só perguntas e alternativas. Pontuação, perfis e textos do resultado ficam no servidor. */
+var QUESTIONS = [
+ {
+  "q": "Nos últimos 30 dias, quantas candidaturas você enviou?",
+  "o": [
+   "Mais de 30, e recebi retorno de várias",
+   "Entre 10 e 30",
+   "Menos de 10",
+   "Nenhuma. Não sei por onde começar"
+  ]
+ },
+ {
+  "q": "Quando você se candidata, o que costuma acontecer?",
+  "o": [
+   "Recebo convites para conversar",
+   "Só recebo respostas automáticas",
+   "Quase nunca respondem",
+   "Nunca tive nenhuma resposta"
+  ]
+ },
+ {
+  "q": "Seu currículo é o mesmo para todas as vagas?",
+  "o": [
+   "Adapto para cada vaga",
+   "Adapto de vez em quando",
+   "Uso o mesmo e só troco o endereço do e-mail",
+   "Nem tenho um currículo atualizado"
+  ]
+ },
+ {
+  "q": "Seu currículo mostra resultados concretos que você já entregou?",
+  "o": [
+   "Sim, com números e conquistas",
+   "Tenho algumas conquistas citadas",
+   "Só listo funções e cursos",
+   "Não sei o que colocar além disso"
+  ]
+ },
+ {
+  "q": "Como está seu perfil profissional online (LinkedIn ou similar)?",
+  "o": [
+   "Completo e atualizado",
+   "Existe, mas está desatualizado",
+   "Quase vazio",
+   "Não tenho perfil"
+  ]
+ },
+ {
+  "q": "Antes de se candidatar, você pesquisa a empresa e entende a vaga?",
+  "o": [
+   "Sempre, e ajusto minha mensagem",
+   "Às vezes",
+   "Raramente",
+   "Nunca. Envio e fico esperando"
+  ]
+ },
+ {
+  "q": "Qual é a sua situação hoje com renda extra?",
+  "o": [
+   "Tenho renda extra constante",
+   "Já tive, mas parou",
+   "Tento, mas não fecho o primeiro cliente",
+   "Quero, mas nunca consegui começar"
+  ]
+ },
+ {
+  "q": "Se alguém perguntasse qual problema você resolve, o que responderia?",
+  "o": [
+   "Respondo em uma frase clara",
+   "Sei, mas explico com dificuldade",
+   "Minha resposta muda a cada vez",
+   "Eu não saberia responder"
+  ]
+ },
+ {
+  "q": "Quando você divulga o que sabe fazer, o que acontece?",
+  "o": [
+   "Recebo pedidos com frequência",
+   "Recebo curtidas, mas poucos pedidos",
+   "Quase ninguém responde",
+   "Sinto vergonha e acabo não divulgando"
+  ]
+ },
+ {
+  "q": "Quando uma candidatura é ignorada, qual é o seu pensamento?",
+  "o": [
+   "Reviso o que posso melhorar e tento de novo",
+   "Fico desanimado(a), mas continuo",
+   "Penso que talvez eu não seja bom(a) o bastante",
+   "Dá vontade de parar de procurar"
+  ]
+ },
+ {
+  "q": "Como é a sua rotina de busca por oportunidades?",
+  "o": [
+   "Diária e organizada",
+   "Algumas vezes por semana",
+   "Só quando bate o desespero",
+   "Não tenho rotina"
+  ]
+ },
+ {
+  "q": "Você acompanha o que o mercado pede na sua área?",
+  "o": [
+   "Toda semana",
+   "De vez em quando",
+   "Raramente",
+   "Nunca parei para ver"
+  ]
+ },
+ {
+  "q": "Qual frase descreve melhor o que você sente hoje?",
+  "o": [
+   "Estou no caminho certo, falta um ajuste",
+   "Faço bastante e o retorno é pequeno",
+   "Parece que algo invisível me trava",
+   "Já tentei de tudo e nada muda"
+  ]
+ }
+];
+
+var state = {name:"", idx:0, answers:[], sid:null, preview:null, timer:null};
+var $ = function(id){return document.getElementById(id)};
+
+function store(k,v){ try{ if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){} }
+function load(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function show(id){
+  var all=document.querySelectorAll(".screen");
+  for(var i=0;i<all.length;i++) all[i].classList.remove("on");
+  $(id).classList.add("on");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function api(path, opts){
+  return fetch(path, opts).then(function(r){
+    return r.json().catch(function(){return {}}).then(function(d){ return {status:r.status, data:d}; });
+  });
+}
+
+/* ===== FLUXO ===== */
+$("btn-start").onclick = function(){ show("s-name"); setTimeout(function(){$("name").focus()},300); };
+
+function submitName(){
+  var v = $("name").value.trim().split(/\s+/)[0];
+  if(v.length < 2){ $("name-err").textContent = "Digite seu primeiro nome para continuar."; return; }
+  state.name = v.charAt(0).toUpperCase() + v.slice(1);
+  startQuiz();
+}
+$("btn-name").onclick = submitName;
+$("name").onkeydown = function(e){ if(e.key==="Enter") submitName(); };
+
+function startQuiz(){
+  state.idx=0; state.answers=[];
+  show("s-quiz"); renderQ();
+}
+
+function renderQ(){
+  var q = QUESTIONS[state.idx], total = QUESTIONS.length;
+  $("q-num").textContent = "Pergunta "+(state.idx+1)+" de "+total;
+  var pct = Math.round(state.idx/total*100);
+  $("q-pct").textContent = pct+"%";
+  $("bar").style.width = pct+"%";
+  var box = $("q-box"); box.innerHTML = "";
+  var wrap = document.createElement("div"); wrap.className="slide";
+  var h = document.createElement("h2"); h.className="q"; h.textContent = q.q; wrap.appendChild(h);
+  var opts = document.createElement("div"); opts.className="opts";
+  q.o.forEach(function(text,i){
+    var b = document.createElement("button"); b.className="opt"; b.type="button";
+    var l = document.createElement("b"); l.textContent = "ABCD".charAt(i);
+    var s = document.createElement("span"); s.textContent = text;
+    b.appendChild(l); b.appendChild(s);
+    b.onclick = function(){ pick(b,opts,i); };
+    opts.appendChild(b);
+  });
+  wrap.appendChild(opts); box.appendChild(wrap);
+}
+
+function pick(btn,opts,choice){
+  btn.classList.add("sel"); opts.classList.add("lock");
+  state.answers.push(choice);
+  $("bar").style.width = Math.round((state.idx+1)/QUESTIONS.length*100)+"%";
+  setTimeout(function(){
+    state.idx++;
+    if(state.idx < QUESTIONS.length) renderQ(); else runAnalysis();
+  }, 650);
+}
+
+/* ===== ANÁLISE (animação + envio ao servidor em paralelo) ===== */
+function runAnalysis(){
+  show("s-analysis");
+  $("an-err").textContent=""; $("an-retry").style.display="none"; $("an-title").textContent="Analisando suas respostas...";
+  var ids=["a1","a2","a3","a4"];
+  ids.forEach(function(id){ $(id).classList.remove("on"); });
+  ids.forEach(function(id,i){ setTimeout(function(){ $(id).classList.add("on"); }, 400 + i*1100); });
+
+  var animDone = new Promise(function(res){ setTimeout(res, 5000); });
+  var req = api("/api/submit", {method:"POST", headers:{"content-type":"application/json"},
+    body: JSON.stringify({name:state.name, answers:state.answers})});
+
+  Promise.all([req, animDone]).then(function(r){
+    var out = r[0];
+    if(out.status !== 200 || !out.data.sid) throw new Error("submit");
+    state.sid = out.data.sid; state.preview = out.data.preview;
+    store("diagSid", state.sid);
+    showPreview();
+  }).catch(function(){
+    $("an-title").textContent = "Não foi possível concluir";
+    $("an-err").textContent = "Verifique sua conexão e tente novamente. Suas respostas não foram perdidas.";
+    $("an-retry").style.display = "block";
+  });
+}
+$("an-retry").onclick = runAnalysis;
+
+/* ===== PRÉVIA ===== */
+function showPreview(){
+  var p = state.preview; state.name = p.name;
+  var b = $("p-badge"); b.style.background = p.color;
+  $("p-title").textContent = p.name+", seu perfil é: "+p.profile;
+  $("p-score").textContent = "Nível de bloqueio: "+p.percent+"%";
+  show("s-preview");
+  setTimeout(function(){ $("p-pin").style.left = "calc("+Math.min(p.percent,96)+"% - 3px)"; }, 300);
+}
+
+/* ===== OFERTA / CHECKOUT ===== */
+$("btn-offer").onclick = function(){
+  $("o-title").textContent = state.name+", "+PRODUCT.charAt(0).toLowerCase()+PRODUCT.slice(1);
+  show("s-offer");
+};
+
+function checkoutUrl(){
+  return CHECKOUT_URL + (CHECKOUT_URL.indexOf("?")>-1 ? "&" : "?") + "sck=" + encodeURIComponent(state.sid);
+}
+$("btn-checkout").onclick = function(e){
+  e.preventDefault();
+  window.open(checkoutUrl(), "_blank", "noopener");
+  startWaiting();
+};
+$("btn-reopen").onclick = function(){ window.open(checkoutUrl(), "_blank", "noopener"); };
+
+/* ===== ESPERA PELA CONFIRMAÇÃO (webhook Hotmart -> servidor) ===== */
+function startWaiting(){
+  show("s-wait"); $("wait-msg").textContent="";
+  stopWaiting();
+  state.timer = setInterval(function(){ checkPayment(false); }, 5000);
+}
+function stopWaiting(){ if(state.timer){ clearInterval(state.timer); state.timer=null; } }
+
+function checkPayment(manual){
+  return api("/api/result?sid="+encodeURIComponent(state.sid)).then(function(o){
+    if(o.status === 200 && o.data.paid){ stopWaiting(); renderResult(o.data.result); }
+    else if(manual){ $("wait-msg").textContent = "Ainda não recebemos a confirmação. Pix e cartão costumam confirmar em instantes; boleto pode levar até 3 dias úteis."; }
+  }).catch(function(){ if(manual) $("wait-msg").textContent = "Falha de conexão. Tente de novo."; });
+}
+$("btn-check").onclick = function(){ $("wait-msg").textContent="Verificando..."; checkPayment(true); };
+
+/* ===== RESULTADO COMPLETO (dados vindos do servidor) ===== */
+function renderResult(r){
+  var badge=$("r-badge"); badge.textContent="Perfil identificado"; badge.style.background=r.color;
+  $("r-title").textContent = r.name+", seu perfil é: "+r.profile;
+  $("r-score").textContent = "Nível de bloqueio: "+r.percent+"% ("+r.score+" de "+r.max+" pontos)";
+  $("r-text").textContent = r.text;
+  $("r-focus").textContent = r.focus;
+
+  var cats = $("r-cats"); cats.innerHTML="";
+  r.cats.forEach(function(c){
+    var col = c.pct>=66 ? "var(--red)" : c.pct>=33 ? "var(--amber)" : "var(--teal)";
+    var d = document.createElement("div"); d.className="cat";
+    var row = document.createElement("div"); row.className="row";
+    var a = document.createElement("span"); a.textContent = c.label;
+    var b = document.createElement("span"); b.textContent = c.pct+"%";
+    row.appendChild(a); row.appendChild(b);
+    var t = document.createElement("div"); t.className="t";
+    var i = document.createElement("i"); i.style.background=col; i.setAttribute("data-w",c.pct);
+    t.appendChild(i); d.appendChild(row); d.appendChild(t); cats.appendChild(d);
+  });
+
+  show("s-result");
+  setTimeout(function(){
+    $("r-pin").style.left = "calc("+Math.min(r.percent,96)+"% - 3px)";
+    var fills = cats.querySelectorAll("i");
+    for(var j=0;j<fills.length;j++) fills[j].style.width = fills[j].getAttribute("data-w")+"%";
+  }, 300);
+}
+
+/* ===== RETOMADA: quem volta (ou acabou de pagar) cai no lugar certo ===== */
+(function resume(){
+  var sid = load("diagSid");
+  if(!sid) return;
+  api("/api/result?sid="+encodeURIComponent(sid)).then(function(o){
+    if(o.status === 200 && o.data.paid){ state.sid = sid; renderResult(o.data.result); }
+    else if(o.status === 402){ state.sid = sid; state.preview = o.data.preview; state.name = o.data.preview.name; showPreview(); }
+    else if(o.status === 404){ store("diagSid", null); }
+  }).catch(function(){});
+})();
+</script>
+</body>
+</html>
